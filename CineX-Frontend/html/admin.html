@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - CineX</title>
+    
+    <!-- Estilos globales -->
+    <link rel="stylesheet" href="../css/style.css">
+    <!-- Estilos específicos del admin panel -->
+    <link rel="stylesheet" href="../css/admin.css"> 
+</head>
+<body>
+    <header class="navbar">
+        <div class="container nav-inner">
+            <div class="logo">
+                <a href="index.html">CineX</a>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Inicio</a></li>
+                    <li><a href="about.html">Acerca de</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="container admin-section">
+            <div class="section-header" style="text-align: center; margin-bottom: 32px;">
+                <h1>Panel de Administración</h1>
+                <p class="muted">Gestiona las reservas, usuarios y productos del sistema.</p>
+            </div>
+
+            <div class="admin-grid">
+
+                <!-- Tarjeta de Gestión de Reservas -->
+                <div class="admin-card">
+                    <h2>Gestionar Reserva</h2>
+                    <form id="reserva-form">
+                        <input type="hidden" id="reserva-id">
+                        <div class="form-group">
+                            <label for="usuario-select">Usuario</label>
+                            <select id="usuario-select" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="movie-select">Película</label>
+                            <select id="movie-select" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="producto-select">Producto</label>
+                            <select id="producto-select" required></select>
+                        </div>
+                        <button type="submit" id="reserva-submit-btn">Crear Reserva</button>
+                    </form>
+                    <ul id="reservas-list" class="data-list"></ul>
+                </div>
+
+                <!-- Tarjeta de Gestión de Usuarios -->
+                <div class="admin-card">
+                    <h2>Gestionar Usuarios</h2>
+                    <form id="user-form">
+                        <input type="hidden" id="user-id">
+                        <div class="form-group">
+                            <label for="user-nombre">Nombre</label>
+                            <input type="text" id="user-nombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="user-email">Email</label>
+                            <input type="email" id="user-email" required>
+                        </div>
+                        <button type="submit" id="user-submit-btn">Crear Usuario</button>
+                    </form>
+                    <ul id="users-list" class="data-list"></ul>
+                </div>
+
+                <!-- Tarjeta de Gestión de Productos -->
+                <div class="admin-card">
+                    <h2>Gestionar Productos</h2>
+                    <form id="product-form">
+                        <input type="hidden" id="product-id">
+                        <div class="form-group">
+                            <label for="product-nombre">Nombre del Producto</label>
+                            <input type="text" id="product-nombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-precio">Precio</label>
+                            <input type="number" id="product-precio" step="0.01" required>
+                        </div>
+                        <button type="submit" id="product-submit-btn">Crear Producto</button>
+                    </form>
+                    <ul id="products-list" class="data-list"></ul>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; <span id="year"></span> CineX. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script src="../js/app.js"></script> 
+</body>
+</html>
