@@ -1,0 +1,22 @@
+# Despliegue en Render: la API (Docker) y el frontend (sitio estático)
+services:
+  - type: web
+    name: cinex-api
+    runtime: docker
+    plan: free
+    rootDir: CineX-Backend/cineX_spring_boot/demo
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /productos
+    envVars:
+      - key: DB_URL
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+
+  - type: web
+    name: cinex
+    runtime: static
+    rootDir: CineX-Frontend
+    staticPublishPath: .
