@@ -1,7 +1,7 @@
 const TMDB_API_KEY = 'ab3a96eb02c4788f094f1803fa62a7b3';
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE = 'https://image.tmdb.org/t/p/original';
-// En local apunta al backend en el puerto 8080; publicado, a la API en Render
+// En local apunta al backend en el puerto 8080; publicado, a la API en Render.
 const CINEX_BASE = ['localhost', '127.0.0.1', ''].includes(window.location.hostname)
   ? 'http://localhost:8080'
   : 'https://cinex-api.onrender.com';
@@ -29,42 +29,168 @@ async function tmdbFetch(endpoint) {
   return res.json();
 }
 
-async function cinexFetch(endpoint) {
-  const url = `${CINEX_BASE}${endpoint}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`CineX backend fetch error: ${res.status}`);
-  const contentType = res.headers.get("content-type");
-  if (contentType && contentType.includes("application/json")) {
-    return res.json();
+// --- CONEXIÓN CON LA API (CON MODO DEMOSTRACIÓN) ---
+// Si la API responde, el panel trabaja con la base de datos real.
+// Si no responde (por ejemplo, mientras el servidor gratuito despierta),
+// el panel pasa a un modo demostración que guarda los datos en el navegador.
+
+let apiModo = 'real'; // 'real' o 'demo'
+
+async function apiResponde(timeoutMs) {
+  const control = new AbortController();
+  const temporizador = setTimeout(() => control.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${CINEX_BASE}/productos`, { signal: control.signal });
+    return res.ok;
+  } catch (err) {
+    return false;
+  } finally {
+    clearTimeout(temporizador);
   }
 }
 
-async function cinexPost(endpoint, body) {
-  const url = `${CINEX_BASE}${endpoint}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`CineX backend POST error: ${res.status}`);
-  if (res.headers.get("content-type")?.includes("application/json")) return res.json();
+function mostrarEstadoApi(html, tipo) {
+  const aviso = document.getElementById('api-status');
+  if (!aviso) return;
+  aviso.className = `api-status api-status-${tipo}`;
+  aviso.innerHTML = html;
+  aviso.hidden = false;
 }
 
-async function cinexPut(endpoint, body) {
-  const url = `${CINEX_BASE}${endpoint}`;
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`CineX backend PUT error: ${res.status}`);
-  if (res.headers.get("content-type")?.includes("application/json")) return res.json();
+async function detectarApi() {
+  mostrarEstadoApi('Conectando con el servidor…', 'info');
+  if (await apiResponde(8000)) {
+    apiModo = 'real';
+    mostrarEstadoApi(`Conectado a la API en vivo. <a href="${CINEX_BASE}/swagger-ui.html" target="_blank" rel="noopener">Ver la documentación (Swagger)</a>`, 'ok');
+    return;
+  }
+  apiModo = 'demo';
+  mostrarEstadoApi('<strong>Modo demostración:</strong> el servidor no respondió, así que los cambios se guardan solo en tu navegador. Seguimos intentando conectar…', 'demo');
+  esperarApi();
 }
 
-async function cinexDelete(endpoint) {
-  const url = `${CINEX_BASE}${endpoint}`;
-  const res = await fetch(url, { method: 'DELETE' });
-  if (!res.ok) throw new Error(`CineX backend DELETE error: ${res.status}`);
+// Reintenta durante unos minutos; si la API despierta, ofrece cambiar a los datos reales.
+async function esperarApi(intento = 1) {
+  if (intento > 12) {
+    mostrarEstadoApi('<strong>Modo demostración:</strong> el servidor no está disponible en este momento. Los cambios se guardan solo en tu navegador.', 'demo');
+    return;
+  }
+  await new Promise(resolver => setTimeout(resolver, 15000));
+  if (await apiResponde(10000)) {
+    mostrarEstadoApi('El servidor ya está disponible. <button type="button" id="usar-api-real">Usar los datos reales</button>', 'ok');
+    document.getElementById('usar-api-real').addEventListener('click', () => window.location.reload());
+    return;
+  }
+  esperarApi(intento + 1);
+}
+
+async function cinexRequest(metodo, endpoint, body) {
+  if (apiModo === 'demo') return demoApi(metodo, endpoint, body);
+
+  const opciones = { method: metodo };
+  if (body !== undefined) {
+    opciones.headers = { 'Content-Type': 'application/json' };
+    opciones.body = JSON.stringify(body);
+  }
+  const res = await fetch(`${CINEX_BASE}${endpoint}`, opciones);
+  const esJson = res.headers.get('content-type')?.includes('application/json');
+  const datos = esJson ? await res.json() : undefined;
+  if (!res.ok) {
+    // La API responde errores en JSON con un mensaje claro (por ejemplo, 409).
+    throw new Error(datos?.mensaje || `Error ${res.status} en ${metodo} ${endpoint}`);
+  }
+  return datos;
+}
+
+const cinexFetch = (endpoint) => cinexRequest('GET', endpoint);
+const cinexPost = (endpoint, body) => cinexRequest('POST', endpoint, body);
+const cinexPut = (endpoint, body) => cinexRequest('PUT', endpoint, body);
+const cinexDelete = (endpoint) => cinexRequest('DELETE', endpoint);
+
+// --- MODO DEMOSTRACIÓN: misma API, datos en el navegador ---
+
+const DEMO_CLAVE = 'cinex-demo-v1';
+let demoMemoria = null; // respaldo si el navegador bloquea localStorage
+
+function demoDatosIniciales() {
+  return {
+    siguienteId: 100,
+    usuarios: [
+      { id: 1, nombre: 'Alexander', email: 'alexander@example.com' },
+      { id: 2, nombre: 'Daniel', email: 'daniel@example.com' },
+    ],
+    productos: [
+      { id: 1, nombre: 'Crispetas medianas', precio: 12000 },
+      { id: 2, nombre: 'Combo crispetas + gaseosa', precio: 18000 },
+    ],
+    reservas: [],
+  };
+}
+
+function demoLeer() {
+  try {
+    const guardado = localStorage.getItem(DEMO_CLAVE);
+    if (guardado) return JSON.parse(guardado);
+  } catch (err) { /* sin acceso a localStorage */ }
+  if (!demoMemoria) demoMemoria = demoDatosIniciales();
+  return demoMemoria;
+}
+
+function demoGuardar(datos) {
+  demoMemoria = datos;
+  try { localStorage.setItem(DEMO_CLAVE, JSON.stringify(datos)); } catch (err) { /* se queda en memoria */ }
+}
+
+async function demoApi(metodo, endpoint, body) {
+  const [, recurso, idTexto] = endpoint.split('/');
+  const datos = demoLeer();
+  const lista = datos[recurso];
+  if (!lista) throw new Error(`Recurso desconocido: ${recurso}`);
+  const id = idTexto ? Number(idTexto) : null;
+  const buscar = () => {
+    const registro = lista.find(r => r.id === id);
+    if (!registro) throw new Error(`No existe el registro ${id}`);
+    return registro;
+  };
+  // Igual que el backend: la reserva guarda el usuario y el producto completos.
+  const completar = (reserva) => ({
+    ...reserva,
+    usuario: datos.usuarios.find(u => u.id === Number(reserva.usuario?.id)) || null,
+    producto: datos.productos.find(p => p.id === Number(reserva.producto?.id)) || null,
+    tmdbMovieId: reserva.tmdbMovieId != null ? Number(reserva.tmdbMovieId) : null,
+  });
+
+  if (metodo === 'GET') return id ? structuredClone(buscar()) : structuredClone(lista);
+
+  if (metodo === 'POST') {
+    let nuevo = { ...body, id: datos.siguienteId++ };
+    if (recurso === 'productos') nuevo.precio = Number(nuevo.precio);
+    if (recurso === 'reservas') nuevo = completar(nuevo);
+    lista.push(nuevo);
+    demoGuardar(datos);
+    return structuredClone(nuevo);
+  }
+
+  if (metodo === 'PUT') {
+    const actual = buscar();
+    let actualizado = { ...actual, ...body, id };
+    if (recurso === 'productos') actualizado.precio = Number(actualizado.precio);
+    if (recurso === 'reservas') actualizado = completar(actualizado);
+    lista[lista.indexOf(actual)] = actualizado;
+    demoGuardar(datos);
+    return structuredClone(actualizado);
+  }
+
+  if (metodo === 'DELETE') {
+    lista.splice(lista.indexOf(buscar()), 1);
+    demoGuardar(datos);
+    return undefined;
+  }
+  throw new Error(`Método no soportado: ${metodo}`);
+}
+
+function formatoPrecio(valor) {
+  return '$' + Number(valor).toLocaleString('es-CO');
 }
 
 
@@ -192,18 +318,18 @@ async function initMovieDetail() {
 // --- FUNCIONES PARA LA PÁGINA DE ADMINISTRACIÓN (CINEX) ---
 
 async function initAdminPage() {
-  console.log("Initializing Admin Page...");
+  await detectarApi();
   const reservasForm = document.getElementById('reserva-form');
   const userForm = document.getElementById('user-form');
   const productForm = document.getElementById('product-form');
 
   try {
-    const [users, products, moviesResponse] = await Promise.all([
+    // Si TMDB falla, el panel sigue funcionando (solo queda vacía la lista de películas).
+    const [users, products, movies] = await Promise.all([
       cinexFetch('/usuarios'),
       cinexFetch('/productos'),
-      tmdbFetch('/movie/now_playing')
+      tmdbFetch('/movie/now_playing').then(r => r.results).catch(() => [])
     ]);
-    const movies = moviesResponse.results;
 
     await refreshUsersList();
     await refreshProductsList();
@@ -231,7 +357,7 @@ function populateReservationForm(users, products, movies) {
   const movieSelect = document.getElementById('movie-select');
 
   renderSelect(userSelect, users, user => user.nombre, user => user.id);
-  renderSelect(productSelect, products, product => `${product.nombre} - $${product.precio.toFixed(2)}`, product => product.id);
+  renderSelect(productSelect, products, product => `${product.nombre} - ${formatoPrecio(product.precio)}`, product => product.id);
   renderSelect(movieSelect, movies, movie => movie.title, movie => movie.id);
 }
 
@@ -264,7 +390,7 @@ async function handleReservaFormSubmit(event) {
     await refreshReservasList();
   } catch (err) {
     console.error('Error al guardar la reserva:', err);
-    alert('No se pudo guardar la reserva. Revisa la consola.');
+    alert('No se pudo guardar la reserva. ' + err.message);
   }
 }
 
@@ -298,7 +424,7 @@ async function handleDeleteReserva(reservaId) {
     await refreshReservasList();
   } catch (err) {
     console.error('Error al eliminar la reserva:', err);
-    alert('No se pudo eliminar la reserva. Revisa la consola.');
+    alert('No se pudo eliminar la reserva. ' + err.message);
   }
 }
 
@@ -369,11 +495,11 @@ async function handleUserFormSubmit(event) {
         await refreshUsersList();
         const users = await cinexFetch('/usuarios');
         const products = await cinexFetch('/productos');
-        const moviesResponse = await tmdbFetch('/movie/now_playing');
-        populateReservationForm(users, products, moviesResponse.results);
+        const movies = await tmdbFetch('/movie/now_playing').then(r => r.results).catch(() => []);
+        populateReservationForm(users, products, movies);
     } catch (err) {
         console.error('Error al guardar el usuario:', err);
-        alert('No se pudo guardar el usuario. Revisa la consola.');
+        alert('No se pudo guardar el usuario. ' + err.message);
     }
 }
 
@@ -407,7 +533,7 @@ async function handleDeleteUser(userId) {
         await refreshReservasList();
     } catch (err) {
         console.error('Error al eliminar el usuario:', err);
-        alert('No se pudo eliminar el usuario. Revisa la consola.');
+        alert('No se pudo eliminar el usuario. ' + err.message);
     }
 }
 
@@ -474,11 +600,11 @@ async function handleProductFormSubmit(event) {
         await refreshProductsList();
         const users = await cinexFetch('/usuarios');
         const products = await cinexFetch('/productos');
-        const moviesResponse = await tmdbFetch('/movie/now_playing');
-        populateReservationForm(users, products, moviesResponse.results);
+        const movies = await tmdbFetch('/movie/now_playing').then(r => r.results).catch(() => []);
+        populateReservationForm(users, products, movies);
     } catch (err) {
         console.error('Error al guardar el producto:', err);
-        alert('No se pudo guardar el producto. Revisa la consola.');
+        alert('No se pudo guardar el producto. ' + err.message);
     }
 }
 
@@ -512,7 +638,7 @@ async function handleDeleteProduct(productId) {
         await refreshReservasList();
     } catch (err) {
         console.error('Error al eliminar el producto:', err);
-        alert('No se pudo eliminar el producto. Revisa la consola.');
+        alert('No se pudo eliminar el producto. ' + err.message);
     }
 }
 
@@ -529,7 +655,7 @@ async function refreshProductsList() {
         products.forEach(product => {
             const li = document.createElement('li');
             const text = document.createElement('span');
-            text.textContent = `${product.nombre} - $${product.precio.toFixed(2)} `;
+            text.textContent = `${product.nombre} - ${formatoPrecio(product.precio)} `;
             li.appendChild(text);
 
             const actionsDiv = document.createElement('div');
