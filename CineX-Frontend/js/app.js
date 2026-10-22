@@ -4,7 +4,7 @@ const TMDB_IMAGE = 'https://image.tmdb.org/t/p/original';
 // En local apunta al backend en el puerto 8080; publicado, a la API en Render.
 const CINEX_BASE = ['localhost', '127.0.0.1', ''].includes(window.location.hostname)
   ? 'http://localhost:8080'
-  : 'https://cinex-api.onrender.com';
+  : 'https://cinex-api-lt2q.onrender.com';
 
 document.addEventListener('DOMContentLoaded', () => {
   const yearEls = document.querySelectorAll('#year, #year-detail, #year-about');
