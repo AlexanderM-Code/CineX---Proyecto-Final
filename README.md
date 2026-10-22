@@ -11,6 +11,10 @@ Aplicación web para administrar un cine: cartelera, salas, funciones, venta de 
 ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=flat-square&logo=postman&logoColor=white)
 ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=flat-square&logo=swagger&logoColor=black)
 
+**En vivo:** [Sitio web](https://alexanderm-code.github.io/CineX---Proyecto-Final/) · [Panel de administración](https://alexanderm-code.github.io/CineX---Proyecto-Final/html/admin.html) · [API con Swagger](https://cinex-api-lt2q.onrender.com/swagger-ui/index.html)
+
+> La API corre en el plan gratuito de Render con MySQL en Aiven. Si lleva un rato sin uso puede tardar unos 50 segundos en despertar; mientras tanto, el panel funciona en modo demostración y se conecta solo cuando la API responde.
+
 ---
 
 ## Historia del proyecto
