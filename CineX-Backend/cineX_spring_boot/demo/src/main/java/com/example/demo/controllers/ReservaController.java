@@ -2,55 +2,53 @@ package com.example.demo.controllers;
 
 import com.example.demo.entities.Reserva;
 import com.example.demo.services.ReservaService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/reservas")
-@CrossOrigin(origins = "*")
+@Tag(name = "Reservas", description = "Reservas de confitería para una película de TMDB")
 public class ReservaController {
 
-    @Autowired
-    private ReservaService reservaService;
+    private final ReservaService reservaService;
 
-    @PostMapping
-    public Reserva create(@RequestBody Reserva reserva) {
-        return reservaService.create(reserva);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<Reserva> findById(@PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(reservaService.findById(id));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ReservaController(ReservaService reservaService) {
+        this.reservaService = reservaService;
     }
 
     @GetMapping
+    @Operation(summary = "Listar reservas")
     public List<Reserva> findAll() {
         return reservaService.findAll();
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Obtener por id")
+    public Reserva findById(@PathVariable Long id) {
+        return reservaService.findById(id);
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Crear")
+    public Reserva create(@RequestBody Reserva reserva) {
+        return reservaService.create(reserva);
+    }
+
     @PutMapping("/{id}")
-    public ResponseEntity<Reserva> update(@PathVariable Long id, @RequestBody Reserva reserva) {
-        try {
-            return ResponseEntity.ok(reservaService.update(id, reserva));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    @Operation(summary = "Actualizar")
+    public Reserva update(@PathVariable Long id, @RequestBody Reserva reserva) {
+        return reservaService.update(id, reserva);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        try {
-            reservaService.delete(id);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Eliminar")
+    public void delete(@PathVariable Long id) {
+        reservaService.delete(id);
     }
 }
