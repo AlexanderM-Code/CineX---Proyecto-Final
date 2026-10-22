@@ -1,29 +1,21 @@
 package com.example.demo.repositories;
 
 import com.example.demo.entities.Booking;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Repository
-public class BookingRepository {
-    private final List<Booking> bookings = new ArrayList<>();
-    private final AtomicInteger counter = new AtomicInteger();
+public interface BookingRepository extends JpaRepository<Booking, Long> {
 
-    public List<Booking> findAll() {
-        return bookings;
-    }
+    List<Booking> findByShowtimeId(Long showtimeId);
 
-    public Optional<Booking> findById(int id) {
-        return bookings.stream().filter(booking -> booking.getId() == id).findFirst();
-    }
+    boolean existsByShowtimeId(Long showtimeId);
 
-    public Booking save(Booking booking) {
-        booking.setId(counter.incrementAndGet());
-        bookings.add(booking);
-        return booking;
-    }
+    /** Total de sillas vendidas en una función (0 si no hay reservas). */
+    @Query("select coalesce(sum(b.numberOfSeats), 0L) from Booking b where b.showtime.id = :showtimeId")
+    long sumSeatsByShowtime(@Param("showtimeId") Long showtimeId);
 }

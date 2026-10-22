@@ -1,0 +1,47 @@
+# Levanta CineX completo con un comando:
+#   docker compose up -d --build
+# Frontend: http://localhost:5500   API: http://localhost:8080   Swagger: http://localhost:8080/swagger-ui.html
+#
+# Las contraseñas se leen del archivo .env (copia .env.example).
+
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: cinex_db
+      MYSQL_USER: ${DB_USER:-cinex}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-cinex}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-cambia-esta-clave}
+    ports:
+      - "3306:3306"
+    volumes:
+      - datos_mysql:/var/lib/mysql
+      - "./CineX-Database/BD - CineX.sql:/docker-entrypoint-initdb.d/01-cinex.sql:ro"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 30
+
+  api:
+    build: ./CineX-Backend/cineX_spring_boot/demo
+    environment:
+      DB_URL: jdbc:mysql://db:3306/cinex_db
+      DB_USER: ${DB_USER:-cinex}
+      DB_PASSWORD: ${DB_PASSWORD:-cinex}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./CineX-Frontend:/usr/share/nginx/html:ro
+    ports:
+      - "5500:80"
+    depends_on:
+      - api
+
+volumes:
+  datos_mysql:

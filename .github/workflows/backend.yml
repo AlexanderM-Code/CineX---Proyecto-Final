@@ -1,0 +1,73 @@
+name: Backend
+
+on:
+  push:
+  pull_request:
+
+defaults:
+  run:
+    working-directory: CineX-Backend/cineX_spring_boot/demo
+
+jobs:
+  pruebas:
+    name: Pruebas (JUnit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Compilar y ejecutar las pruebas
+        run: mvn -B verify
+
+  postman:
+    name: API real + colección de Postman
+    needs: pruebas
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: cinex_db
+          MYSQL_USER: cinex
+          MYSQL_PASSWORD: cinex
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Crear el esquema con el script de la base de datos
+        working-directory: .
+        run: mysql -h 127.0.0.1 -u root -proot < "CineX-Database/BD - CineX.sql"
+      - name: Empaquetar la API
+        run: mvn -B -DskipTests package
+      - name: Arrancar la API contra MySQL
+        env:
+          DB_URL: jdbc:mysql://127.0.0.1:3306/cinex_db
+          DB_USER: root
+          DB_PASSWORD: root
+        run: |
+          nohup java -jar target/*.jar > api.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8080/movies > /dev/null && echo "API lista" && exit 0
+            sleep 2
+          done
+          cat api.log
+          exit 1
+      - name: Ejecutar la colección de Postman con Newman
+        working-directory: .
+        run: npx --yes newman@6 run postman/CineX.postman_collection.json --env-var baseUrl=http://localhost:8080
+      - name: Registro de la API si algo falla
+        if: failure()
+        run: cat api.log

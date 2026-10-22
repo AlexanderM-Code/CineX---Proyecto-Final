@@ -1,28 +1,25 @@
 package com.example.demo.repositories;
 
 import com.example.demo.entities.Showtime;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
-public class ShowtimeRepository {
-    private final List<Showtime> showtimes = new ArrayList<>();
+public interface ShowtimeRepository extends JpaRepository<Showtime, Long> {
 
-    public ShowtimeRepository() {
-        // Sample data
-        showtimes.add(new Showtime(1, "tt0111161", 1, LocalDateTime.now().plusHours(2)));
-        showtimes.add(new Showtime(2, "tt0068646", 2, LocalDateTime.now().plusHours(3)));
-    }
+    /** Funciones de una película, en orden cronológico. */
+    List<Showtime> findByMovieIdOrderByShowDateTimeAsc(Long movieId);
 
-    public List<Showtime> findAll() {
-        return showtimes;
-    }
+    /** ¿La sala ya tiene una función a esa hora? */
+    boolean existsByRoomIdAndShowDateTime(Long roomId, LocalDateTime showDateTime);
 
-    public Optional<Showtime> findById(int id) {
-        return showtimes.stream().filter(showtime -> showtime.getId() == id).findFirst();
-    }
+    /** Igual que el anterior, pero ignorando la función que se está editando. */
+    boolean existsByRoomIdAndShowDateTimeAndIdNot(Long roomId, LocalDateTime showDateTime, Long id);
+
+    boolean existsByMovieId(Long movieId);
+
+    boolean existsByRoomId(Long roomId);
 }
