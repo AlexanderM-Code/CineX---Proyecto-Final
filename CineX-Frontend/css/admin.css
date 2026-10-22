@@ -132,3 +132,25 @@
     background: var(--accent);
     color: white;
 }
+
+/* Estado de la conexión con la API */
+.api-status {
+    max-width: 900px;
+    margin: 0 auto 28px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    line-height: 1.5;
+}
+.api-status a { color: inherit; font-weight: 700; }
+.api-status button {
+    margin-left: 8px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.api-status-info { background: #1f2a37; color: #dbe7f3; }
+.api-status-ok   { background: #12352a; color: #c9f2dd; }
+.api-status-ok button { background: #3ecf8e; color: #08251a; }
+.api-status-demo { background: #3d2f12; color: #ffe2a8; }
