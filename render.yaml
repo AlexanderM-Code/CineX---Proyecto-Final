@@ -1,7 +1,8 @@
 # Despliegue de la API en Render (plan gratuito, con Docker).
 # El frontend se publica aparte en GitHub Pages (.github/workflows/pages.yml).
-# La base de datos es MySQL en Aiven: DB_URL, DB_USER y DB_PASSWORD se
-# configuran en el panel de Render, nunca en el código.
+# La base de datos es TiDB Cloud Starter (compatible con MySQL, gratuita y sin
+# apagados por inactividad): DB_URL, DB_USER y DB_PASSWORD se configuran en el
+# panel de Render, nunca en el código.
 services:
   - type: web
     name: cinex-api
