@@ -6,6 +6,7 @@ import com.example.demo.entities.Showtime;
 import com.example.demo.repositories.CinemaRoomRepository;
 import com.example.demo.repositories.MovieRepository;
 import com.example.demo.repositories.ShowtimeRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
@@ -43,6 +44,7 @@ public class CarteleraAlDia {
     private final ShowtimeRepository showtimes;
     private final Clock reloj;
 
+    @Autowired
     public CarteleraAlDia(MovieRepository movies, CinemaRoomRepository rooms, ShowtimeRepository showtimes) {
         this(movies, rooms, showtimes, Clock.system(ZONA));
     }
